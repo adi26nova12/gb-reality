@@ -5,9 +5,9 @@ import { assertDevOnly, sampleMicrosite } from "../sample";
 export const metadata: Metadata = { title: "Microsite design preview (sample data)", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-type Search = { name?: string; development?: string; cover?: string; coverMobile?: string };
+type Search = { name?: string; development?: string; cover?: string; coverMobile?: string; tour?: string };
 
-/** Optional overrides let designers check a real cover image and buyer name: ?name=&development=&cover=&coverMobile= (storage paths). */
+/** Optional overrides let designers check a real cover image and buyer name: ?name=&development=&cover=&coverMobile= (storage paths), &tour= (tour link). */
 export default async function DevMicrositePage({ searchParams }: { searchParams: Promise<Search> }) {
   assertDevOnly();
   const sp = await searchParams;
@@ -16,5 +16,6 @@ export default async function DevMicrositePage({ searchParams }: { searchParams:
   if (sp.development) site.development.name = sp.development.slice(0, 60);
   if (sp.cover) site.development.coverImagePath = sp.cover;
   if (sp.coverMobile) site.development.coverImageMobilePath = sp.coverMobile;
+  if (sp.tour?.startsWith("https://")) site.development.virtualTourUrl = sp.tour;
   return <MicrositeView site={site} token={null} preview brochureHref="/dev/brochure" />;
 }

@@ -30,6 +30,7 @@ export function DevelopmentForm({ id, defaults, mediaPrefix }: { id?: string; de
       location: "",
       address: "",
       mapUrl: "",
+      virtualTourUrl: "",
       latitude: "",
       longitude: "",
       amenities: "",
@@ -115,6 +116,12 @@ export function DevelopmentForm({ id, defaults, mediaPrefix }: { id?: string; de
         </Field>
         <Field id="longitude" label="Longitude" error={err("longitude")}>
           <Input id="longitude" inputMode="decimal" {...register("longitude")} />
+        </Field>
+      </FormSection>
+
+      <FormSection title="Virtual tour" description="Embedded in every buyer's microsite, greeting the buyer by name.">
+        <Field id="virtualTourUrl" label="Tour link" hint="The published tour site, e.g. https://adi26nova12.github.io/microsite-real/" error={err("virtualTourUrl")} className="sm:col-span-2">
+          <Input id="virtualTourUrl" type="url" {...register("virtualTourUrl")} {...inputErrorProps("virtualTourUrl", err("virtualTourUrl"))} />
         </Field>
       </FormSection>
 

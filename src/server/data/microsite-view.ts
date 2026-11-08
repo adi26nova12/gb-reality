@@ -96,6 +96,7 @@ export async function getMicrositePreview(
       longitude: development.longitude,
       coverImagePath: development.coverImagePath,
       coverImageMobilePath: development.coverImageMobilePath,
+      virtualTourUrl: development.virtualTourUrl,
       galleryPaths: development.galleryPaths,
       amenities: development.amenities,
       paymentPlan: development.paymentPlan,

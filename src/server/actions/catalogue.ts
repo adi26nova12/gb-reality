@@ -30,6 +30,7 @@ function developmentRow(v: DevelopmentValues) {
     location: v.location,
     address: v.address,
     map_url: v.mapUrl,
+    virtual_tour_url: v.virtualTourUrl,
     latitude: v.latitude,
     longitude: v.longitude,
     amenities: v.amenities,

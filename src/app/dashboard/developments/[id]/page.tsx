@@ -137,6 +137,16 @@ export default async function DevelopmentPage({ params }: { params: Promise<{ id
             )}
           </section>
           <section className="rounded-xl border border-border bg-card p-6">
+            <SectionHeading title="Virtual tour" />
+            {d.virtualTourUrl ? (
+              <a href={d.virtualTourUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-emerald-brand hover:underline">
+                Open tour <ExternalLink className="size-3.5" aria-hidden />
+              </a>
+            ) : (
+              <p className="text-sm text-muted-foreground">No tour yet. Add a tour link to embed it in buyer microsites.</p>
+            )}
+          </section>
+          <section className="rounded-xl border border-border bg-card p-6">
             <SectionHeading title="Payment plan" />
             {d.paymentPlan.length === 0 ? (
               <p className="text-sm text-muted-foreground">No payment plan yet.</p>

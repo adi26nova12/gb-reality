@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpen, ChevronDown, Download, MapPin, MessageCircle, Phone, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronDown, Download, Expand, MapPin, MessageCircle, Phone, ShieldCheck } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { MediaImage } from "@/components/app/media-image";
 import { displayE164, e164Digits } from "@/lib/domain/phone-format";
@@ -27,11 +27,25 @@ function Section({ id, eyebrow, title, children, className }: { id?: string; eye
   );
 }
 
+/** The tour site reads ?for= to greet the buyer and ?embed=1 to behave politely inside the page. */
+function tourHref(base: string, firstName: string | null, embed: boolean): string | null {
+  try {
+    const url = new URL(base);
+    if (url.protocol !== "https:") return null;
+    if (firstName) url.searchParams.set("for", firstName);
+    if (embed) url.searchParams.set("embed", "1");
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function Body({ site, preview, brochureHref }: { site: PublicMicrosite; preview: boolean; brochureHref: string | null }) {
   const { track } = useTracker();
   const opened = useRef(false);
   const [selectedRef, setSelectedRef] = useState("");
   const [showMap, setShowMap] = useState(false);
+  const tourFrame = useRef<HTMLIFrameElement>(null);
   const d = site.development;
   const name = site.buyerFirstName;
   const multiDev = new Set(site.properties.map((p) => p.developmentName)).size > 1 || site.properties.some((p) => p.developmentName !== d.name);
@@ -61,71 +75,126 @@ function Body({ site, preview, brochureHref }: { site: PublicMicrosite; preview:
     ? `https://wa.me/${e164Digits(contactPhone)}?text=${encodeURIComponent(`Hi${site.agent.name ? ` ${site.agent.name.split(" ")[0]}` : ""}, I'm looking at my property selection for ${d.name} and have a question.`)}`
     : null;
   const brochureUrl = site.brochure ? mediaUrl(site.brochure.path) : null;
+  const tourEmbed = d.virtualTourUrl ? tourHref(d.virtualTourUrl, name, true) : null;
+  const tourFull = d.virtualTourUrl ? tourHref(d.virtualTourUrl, name, false) : null;
 
   return (
     <div className="relative min-h-screen bg-ivory pb-24 text-charcoal sm:pb-0">
       {preview && (
         <div className="sticky top-0 z-40 bg-brass px-4 py-2 text-center text-xs font-medium text-charcoal">Agent preview · no engagement is recorded and forms are disabled</div>
       )}
-      <header className={cn("absolute inset-x-0 z-30 flex items-center justify-between px-5 py-4 sm:px-8", preview ? "top-8" : "top-0")}>
-        <span className="text-xs font-medium tracking-[0.2em] text-white/85 uppercase">{site.organisationName}</span>
-        <a href="#viewing" className="hidden rounded-full border border-white/40 bg-black/20 px-4 py-2 text-xs font-medium text-white backdrop-blur transition hover:bg-black/35 sm:inline-block">
-          Request a viewing
-        </a>
-      </header>
-
-      {/* Personalised welcome: the buyer's first name set over the development's cover. */}
-      <div className="relative isolate flex min-h-[86svh] items-end overflow-hidden bg-charcoal sm:min-h-[78vh] sm:items-center">
-        {d.coverImagePath || d.coverImageMobilePath ? (
-          <>
-            <MediaImage
-              path={d.coverImageMobilePath ?? d.coverImagePath}
-              alt={d.name}
-              className="absolute inset-0 -z-10 sm:hidden"
-              sizes="100vw"
-              priority
-            />
-            <MediaImage path={d.coverImagePath ?? d.coverImageMobilePath} alt="" className="absolute inset-0 -z-10 hidden sm:block" sizes="100vw" priority />
-          </>
-        ) : (
-          <div
-            className="absolute inset-0 -z-10 opacity-[0.12]"
-            style={{ backgroundImage: "linear-gradient(var(--champagne) 1px, transparent 1px), linear-gradient(90deg, var(--champagne) 1px, transparent 1px)", backgroundSize: "64px 64px" }}
-            aria-hidden
-          />
-        )}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-charcoal via-charcoal/40 to-charcoal/5 sm:bg-gradient-to-r sm:from-charcoal/80 sm:via-charcoal/30 sm:to-transparent" aria-hidden />
-        <div className="absolute inset-x-0 bottom-0 -z-10 hidden h-1/3 bg-gradient-to-t from-charcoal/70 to-transparent sm:block" aria-hidden />
-        <div className="mx-auto w-full max-w-6xl px-5 pb-14 sm:px-10 sm:pb-0">
-          <div className="max-w-xl animate-in duration-1000 fade-in slide-in-from-bottom-3">
-            {name ? (
-              <>
-                <div className="eyebrow mb-3 text-champagne">Prepared exclusively for</div>
-                <h1 className="font-display text-[4.2rem] leading-[0.95] font-semibold text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.35)] sm:text-[6.5rem]">
-                  {name}
-                </h1>
-                <div className="hairline my-6 w-28" />
-                <p className="font-display text-2xl leading-tight text-white/95 sm:text-3xl">Welcome to {d.name}</p>
-              </>
-            ) : (
-              <>
-                <h1 className="font-display text-5xl leading-[1.02] font-semibold text-white sm:text-7xl">{d.name}</h1>
-                <div className="hairline mt-6 w-28" />
-              </>
-            )}
-            {(d.location || d.developerName) && (
-              <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/80">
-                {d.location && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="size-4 text-champagne" aria-hidden /> {d.location}
-                  </span>
+      {tourEmbed ? (
+        /* With a virtual tour, the buyer lands straight in it: building first, then room to room. */
+        <div id="tour" className="flex h-[calc(100svh-4.5rem)] flex-col bg-[#0a1030] text-white sm:h-svh">
+          <header className="flex items-center justify-between gap-3 px-5 py-3 sm:px-8">
+            <div className="min-w-0">
+              <div className="truncate text-[11px] font-medium tracking-[0.2em] text-white/60 uppercase">{site.organisationName}</div>
+              <div className="truncate font-display text-lg leading-tight sm:text-2xl">
+                {name ? (
+                  <>
+                    Prepared for <span className="text-champagne">{name}</span> · {d.name}
+                  </>
+                ) : (
+                  d.name
                 )}
-                {d.developerName && <span>by {d.developerName}</span>}
-              </p>
-            )}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {tourFull && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    // iPhone Safari can't put an embedded page in full screen, so the tour opens on its own there.
+                    const openAlone = () => window.open(tourFull, "_blank", "noopener,noreferrer");
+                    const frame = tourFrame.current;
+                    if (frame && document.fullscreenEnabled) frame.requestFullscreen().catch(openAlone);
+                    else openAlone();
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/30 px-3 py-2 text-xs font-medium transition hover:bg-white/10 sm:px-4"
+                >
+                  <Expand className="size-3.5" aria-hidden /> Full screen
+                </button>
+              )}
+              <a href="#viewing" className="hidden rounded-full bg-ivory px-4 py-2 text-xs font-medium text-charcoal transition hover:bg-white sm:inline-block">
+                Request a viewing
+              </a>
+            </div>
+          </header>
+          <iframe
+            ref={tourFrame}
+            title={`Interactive virtual tour of ${d.name}`}
+            src={tourEmbed}
+            className="block min-h-0 w-full flex-1"
+            referrerPolicy="no-referrer"
+            allow="fullscreen; autoplay"
+          />
+          <a href="#homes" className="flex items-center justify-center gap-1.5 py-2.5 text-xs text-white/70 transition hover:text-white">
+            Your selected homes, brochure and viewing request <ChevronDown className="size-4" aria-hidden />
+          </a>
+        </div>
+      ) : (
+        <>
+        <header className={cn("absolute inset-x-0 z-30 flex items-center justify-between px-5 py-4 sm:px-8", preview ? "top-8" : "top-0")}>
+          <span className="text-xs font-medium tracking-[0.2em] text-white/85 uppercase">{site.organisationName}</span>
+          <a href="#viewing" className="hidden rounded-full border border-white/40 bg-black/20 px-4 py-2 text-xs font-medium text-white backdrop-blur transition hover:bg-black/35 sm:inline-block">
+            Request a viewing
+          </a>
+        </header>
+
+        {/* Personalised welcome: the buyer's first name set over the development's cover. */}
+        <div className="relative isolate flex min-h-[86svh] items-end overflow-hidden bg-charcoal sm:min-h-[78vh] sm:items-center">
+          {d.coverImagePath || d.coverImageMobilePath ? (
+            <>
+              <MediaImage
+                path={d.coverImageMobilePath ?? d.coverImagePath}
+                alt={d.name}
+                className="absolute inset-0 -z-10 sm:hidden"
+                sizes="100vw"
+                priority
+              />
+              <MediaImage path={d.coverImagePath ?? d.coverImageMobilePath} alt="" className="absolute inset-0 -z-10 hidden sm:block" sizes="100vw" priority />
+            </>
+          ) : (
+            <div
+              className="absolute inset-0 -z-10 opacity-[0.12]"
+              style={{ backgroundImage: "linear-gradient(var(--champagne) 1px, transparent 1px), linear-gradient(90deg, var(--champagne) 1px, transparent 1px)", backgroundSize: "64px 64px" }}
+              aria-hidden
+            />
+          )}
+          <div className="absolute inset-0 -z-10 bg-gradient-to-t from-charcoal via-charcoal/40 to-charcoal/5 sm:bg-gradient-to-r sm:from-charcoal/80 sm:via-charcoal/30 sm:to-transparent" aria-hidden />
+          <div className="absolute inset-x-0 bottom-0 -z-10 hidden h-1/3 bg-gradient-to-t from-charcoal/70 to-transparent sm:block" aria-hidden />
+          <div className="mx-auto w-full max-w-6xl px-5 pb-14 sm:px-10 sm:pb-0">
+            <div className="max-w-xl animate-in duration-1000 fade-in slide-in-from-bottom-3">
+              {name ? (
+                <>
+                  <div className="eyebrow mb-3 text-champagne">Prepared exclusively for</div>
+                  <h1 className="font-display text-[4.2rem] leading-[0.95] font-semibold text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.35)] sm:text-[6.5rem]">
+                    {name}
+                  </h1>
+                  <div className="hairline my-6 w-28" />
+                  <p className="font-display text-2xl leading-tight text-white/95 sm:text-3xl">Welcome to {d.name}</p>
+                </>
+              ) : (
+                <>
+                  <h1 className="font-display text-5xl leading-[1.02] font-semibold text-white sm:text-7xl">{d.name}</h1>
+                  <div className="hairline mt-6 w-28" />
+                </>
+              )}
+              {(d.location || d.developerName) && (
+                <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/80">
+                  {d.location && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="size-4 text-champagne" aria-hidden /> {d.location}
+                    </span>
+                  )}
+                  {d.developerName && <span>by {d.developerName}</span>}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+        </>
+      )}
 
       <section className="px-5 pt-14 sm:px-8 sm:pt-20">
         <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-[1.4fr_1fr] md:items-end">

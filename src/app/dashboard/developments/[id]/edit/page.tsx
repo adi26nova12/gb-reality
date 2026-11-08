@@ -30,6 +30,7 @@ export default async function EditDevelopmentPage({ params }: { params: Promise<
           location: d.location ?? "",
           address: d.address ?? "",
           mapUrl: d.mapUrl ?? "",
+          virtualTourUrl: d.virtualTourUrl ?? "",
           latitude: d.latitude !== null ? String(d.latitude) : "",
           longitude: d.longitude !== null ? String(d.longitude) : "",
           amenities: d.amenities.join("\n"),

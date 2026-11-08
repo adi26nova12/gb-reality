@@ -46,6 +46,9 @@ What's already there:
 ### Step 2: Fill in the details (optional, recommended)
 Click **Edit** and add the location, developer, description, amenities, payment plan and sales contact. Everything you add here appears on every buyer's page for this development.
 
+### Step 2b: Add the virtual tour (optional)
+Click **Edit** and paste the tour's web address under **Virtual tour → Tour link**, e.g. `https://adi26nova12.github.io/microsite-real/`. Every buyer page for this development then shows the interactive tour right under the welcome, and the tour greets the buyer by name (*"Prepared for Ahmed"*).
+
 ### Step 3: Add the units ⚠️ required
 **Properties → Add property**, then for each unit fill in:
 - Unit reference (e.g. *T1-1204*)
@@ -112,15 +115,16 @@ On the same enquiry page, under **Personalised welcome image**, click **Download
 When Ahmed opens the link on his phone:
 
 1. **A welcome screen** with the Opus One image and his name: *"Prepared exclusively for **Ahmed**, Welcome to Opus One"*
-2. **"Your homes"**: only the units you picked, with price, size, floor and features
-3. **View details** and **Floor plan** buttons on each home
-4. **Life at Opus One**: description, amenities and gallery
-5. **Payment plan**: tap to expand
-6. **The full brochure**, readable on the phone, with page turning and zoom
-7. **Location**: the map loads only when he taps it
-8. **Request a viewing** form: date, morning/afternoon/evening, which home
-9. **WhatsApp / Call** buttons to reach you
-10. **A privacy notice** explaining what is recorded
+2. **The virtual tour**, if the development has one: he picks a floor on the tower and walks room to room, greeted by name
+3. **"Your homes"**: only the units you picked, with price, size, floor and features
+4. **View details** and **Floor plan** buttons on each home
+5. **Life at Opus One**: description, amenities and gallery
+6. **Payment plan**: tap to expand
+7. **The full brochure**, readable on the phone, with page turning and zoom
+8. **Location**: the map loads only when he taps it
+9. **Request a viewing** form: date, morning/afternoon/evening, which home
+10. **WhatsApp / Call** buttons to reach you
+11. **A privacy notice** explaining what is recorded
 
 He doesn't need an account or an app. It's just a web page.
 

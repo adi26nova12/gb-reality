@@ -18,6 +18,8 @@ export async function signIn(input: { email: string; password: string; next?: st
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
+    // Status 0 means Supabase never answered, so the credentials weren't checked.
+    if (!error.status) return fail("Can't reach the sign-in service right now. Check your connection, or whether the Supabase project is paused.");
     // Deliberately generic: do not reveal whether the account exists.
     return fail(error.status === 429 ? "Too many attempts. Please wait a minute and try again." : "Incorrect email or password.");
   }

@@ -33,6 +33,7 @@ export function sampleMicrosite(): PublicMicrosite {
       longitude: d.longitude,
       coverImagePath: null,
       coverImageMobilePath: null,
+      virtualTourUrl: null,
       galleryPaths: [],
       amenities: d.amenities,
       paymentPlan: d.paymentPlan,

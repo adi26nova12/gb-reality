@@ -21,6 +21,8 @@ const ownAddresses = Object.values(networkInterfaces())
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   allowedDevOrigins: ownAddresses,
+  // Server Function arguments include sign-in passwords; keep them out of the dev terminal.
+  logging: { serverFunctions: false },
   async headers() {
     const base = [
       { key: "X-Content-Type-Options", value: "nosniff" },

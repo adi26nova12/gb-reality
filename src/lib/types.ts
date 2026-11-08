@@ -17,6 +17,7 @@ export interface Development {
   longitude: number | null;
   coverImagePath: string | null;
   coverImageMobilePath: string | null;
+  virtualTourUrl: string | null;
   galleryPaths: string[];
   amenities: string[];
   paymentPlan: PaymentMilestone[];
@@ -176,6 +177,7 @@ export interface PublicMicrosite {
     longitude: number | null;
     coverImagePath: string | null;
     coverImageMobilePath: string | null;
+    virtualTourUrl: string | null;
     galleryPaths: string[];
     amenities: string[];
     paymentPlan: PaymentMilestone[];

@@ -205,24 +205,28 @@ export const leadStatusSchema = z.object({
 // Catalogue
 // ---------------------------------------------------------------------------
 
-export const developmentSchema = z.object({
-  name: requiredText("Development name", 120).refine((v) => v.length >= 2, "Development name is too short"),
-  developerName: text(120),
-  description: text(4000),
-  location: text(160),
-  address: text(400),
-  mapUrl: z
+const optionalHttpsLink = (message: string) =>
+  z
     .string()
     .trim()
     .optional()
     .transform((value, ctx) => {
       if (!value) return null;
       if (!/^https:\/\/[^\s]+$/i.test(value)) {
-        ctx.addIssue({ code: "custom", message: "Use a full https:// link, e.g. a Google Maps share link" });
+        ctx.addIssue({ code: "custom", message });
         return z.NEVER;
       }
       return value;
-    }),
+    });
+
+export const developmentSchema = z.object({
+  name: requiredText("Development name", 120).refine((v) => v.length >= 2, "Development name is too short"),
+  developerName: text(120),
+  description: text(4000),
+  location: text(160),
+  address: text(400),
+  mapUrl: optionalHttpsLink("Use a full https:// link, e.g. a Google Maps share link"),
+  virtualTourUrl: optionalHttpsLink("Use a full https:// link to the tour, e.g. https://you.github.io/tour/"),
   latitude: optionalDecimal(-90, 90, "Latitude"),
   longitude: optionalDecimal(-180, 180, "Longitude"),
   amenities: stringList(40, 80),

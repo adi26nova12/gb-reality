@@ -24,6 +24,7 @@ export function mapDevelopment(r: Row): Development {
     longitude: num(r.longitude),
     coverImagePath: r.cover_image_path,
     coverImageMobilePath: r.cover_image_mobile_path ?? null,
+    virtualTourUrl: r.virtual_tour_url ?? null,
     galleryPaths: r.gallery_paths ?? [],
     amenities: r.amenities ?? [],
     paymentPlan: plan(r.payment_plan),

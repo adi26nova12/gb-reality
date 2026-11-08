@@ -205,6 +205,14 @@ describe("public microsite access", () => {
     expect(site.development).toMatchObject({ coverImagePath: "p/images/wide.jpg", coverImageMobilePath: "p/images/tall.jpg" });
   });
 
+  it("includes the development's virtual tour link", async () => {
+    await db.query("update developments set virtual_tour_url = 'https://example.github.io/tour/' where id = $1", [f.devA]);
+    const { token } = await createMicrosite([f.propA2bhkInBudget]);
+    const site = (await publicMicrosite(token)) as { development: { virtualTourUrl: string } };
+    expect(site.development.virtualTourUrl).toBe("https://example.github.io/tour/");
+    await expect(db.query("update developments set virtual_tour_url = 'javascript:alert(1)' where id = $1", [f.devA])).rejects.toThrow();
+  });
+
   it("returns not_found for unknown or malformed tokens", async () => {
     expect((await publicMicrosite(newToken().token)).status).toBe("not_found");
     expect((await publicMicrosite("short")).status).toBe("not_found");
