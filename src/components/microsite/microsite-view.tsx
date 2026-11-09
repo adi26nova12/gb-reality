@@ -126,7 +126,7 @@ function Body({ site, preview, brochureHref }: { site: PublicMicrosite; preview:
             src={tourEmbed}
             className="block min-h-0 w-full flex-1"
             referrerPolicy="no-referrer"
-            allow="fullscreen; autoplay"
+            allow="fullscreen; autoplay; accelerometer; gyroscope"
           />
           <a href="#homes" className="flex items-center justify-center gap-1.5 py-2.5 text-xs text-white/70 transition hover:text-white">
             Your selected homes, brochure and viewing request <ChevronDown className="size-4" aria-hidden />
