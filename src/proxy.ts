@@ -34,9 +34,10 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims refreshes an expiring session and verifies the token against the
+  // project's cached signing keys, so a page load doesn't wait on the auth server.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims.sub ? data.claims : null;
 
   if (isDashboard && !user) {
     const url = new URL("/login", request.url);

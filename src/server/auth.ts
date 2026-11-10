@@ -51,26 +51,33 @@ type LoadResult =
 const load = cache(async (): Promise<LoadResult> => {
   if (!isSupabaseConfigured()) return { kind: "unauthenticated" };
   const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) return { kind: "unauthenticated" };
+  // The session token is verified locally against the project's signing keys
+  // (cached), instead of a round trip to the auth server on every page. The
+  // database still checks the token itself on every query (RLS).
+  const { data: claimsData, error } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
+  if (error || !claims?.sub) return { kind: "unauthenticated" };
+  const user = { id: claims.sub, email: typeof claims.email === "string" && claims.email ? claims.email : null };
 
-  const { data: memberships, error: membershipError } = await supabase
-    .from("organisation_memberships")
-    .select("organisation_id, role, notify_first_open, notify_viewing_request, notify_contact_request, notify_engagement, notify_email, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: true });
+  // Memberships (with their organisations) and the profile in one round trip.
+  const [{ data: memberships, error: membershipError }, { data: profile }] = await Promise.all([
+    supabase
+      .from("organisation_memberships")
+      .select(
+        "organisation_id, role, notify_first_open, notify_viewing_request, notify_contact_request, notify_engagement, notify_email, created_at, organisation:organisations(id, name, slug, media_prefix, timezone, default_currency, is_sample)",
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true }),
+    supabase.from("profiles").select("full_name, phone_e164").eq("id", user.id).maybeSingle(),
+  ]);
   if (membershipError) throw new Error("Could not load your organisation membership");
   if (!memberships || memberships.length === 0) return { kind: "no_membership", email: user.email ?? null };
 
-  const orgIds = memberships.map((m) => m.organisation_id as string);
-  const [{ data: orgs, error: orgError }, { data: profile }] = await Promise.all([
-    supabase.from("organisations").select("id, name, slug, media_prefix, timezone, default_currency, is_sample").in("id", orgIds),
-    supabase.from("profiles").select("full_name, phone_e164").eq("id", user.id).maybeSingle(),
-  ]);
-  if (orgError || !orgs) throw new Error("Could not load your organisation");
+  type OrgRow = { id: string; name: string; slug: string; media_prefix: string; timezone: string; default_currency: string; is_sample: boolean };
+  const orgs = memberships.flatMap((m) => {
+    const o = m.organisation as unknown as OrgRow | OrgRow[] | null;
+    return Array.isArray(o) ? o : o ? [o] : [];
+  });
 
   const requested = (await cookies()).get(ORG_COOKIE)?.value;
   const membership = memberships.find((m) => m.organisation_id === requested) ?? memberships[0];

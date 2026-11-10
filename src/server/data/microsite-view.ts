@@ -27,23 +27,35 @@ export async function getMicrositePreview(
   micrositeId: string,
 ): Promise<{ site: PublicMicrosite; state: MicrositeState; leadId: string; buyerName: string } | null> {
   const sb = ctx.supabase;
-  const ms = check(await sb.from("microsites").select("*").eq("organisation_id", ctx.organisation.id).eq("id", micrositeId).maybeSingle());
-  if (!ms) return null;
-
-  const lead = check(await sb.from("leads").select("*").eq("id", ms.lead_id).maybeSingle());
-  if (!lead) return null;
-  const [devRow, brochureRow, selection, agentProfile] = await Promise.all([
-    sb.from("developments").select("*").eq("id", lead.development_id).maybeSingle(),
-    sb.from("brochure_assets").select("title, storage_path, allow_download").eq("development_id", lead.development_id).is("archived_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    sb.from("microsite_properties").select("property_id, public_ref, position").eq("microsite_id", micrositeId).is("removed_at", null).order("position"),
-    sb.from("profiles").select("full_name, phone_e164").eq("id", lead.assigned_agent_id ?? lead.created_by ?? "00000000-0000-0000-0000-000000000000").maybeSingle(),
+  const org = ctx.organisation.id;
+  // Each round trip to the database costs a few hundred milliseconds, so queries
+  // that don't depend on each other go out together: three waits instead of five.
+  const [msRow, selection] = await Promise.all([
+    sb.from("microsites").select("*").eq("organisation_id", org).eq("id", micrositeId).maybeSingle(),
+    sb.from("microsite_properties").select("property_id, public_ref, position").eq("organisation_id", org).eq("microsite_id", micrositeId).is("removed_at", null).order("position"),
   ]);
-  const development = mapDevelopment(check(devRow));
+  const ms = check(msRow);
+  if (!ms) return null;
   const selectionRows = check(selection) ?? [];
   const propertyIds = selectionRows.map((s) => s.property_id as string);
-  const propertyRows = propertyIds.length ? check(await sb.from("properties").select("*").in("id", propertyIds)) ?? [] : [];
+
+  const [leadRow, propertyResult] = await Promise.all([
+    sb.from("leads").select("*").eq("id", ms.lead_id).maybeSingle(),
+    propertyIds.length ? sb.from("properties").select("*").in("id", propertyIds) : null,
+  ]);
+  const lead = check(leadRow);
+  if (!lead) return null;
+  const propertyRows = propertyResult ? check(propertyResult) ?? [] : [];
   const devIds = Array.from(new Set(propertyRows.map((p) => p.development_id as string)));
-  const propertyDevs = devIds.length ? check(await sb.from("developments").select("id, name, payment_plan").in("id", devIds)) ?? [] : [];
+
+  const [devRow, brochureRow, agentProfile, propertyDevResult] = await Promise.all([
+    sb.from("developments").select("*").eq("id", lead.development_id).maybeSingle(),
+    sb.from("brochure_assets").select("title, storage_path, allow_download").eq("development_id", lead.development_id).is("archived_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    sb.from("profiles").select("full_name, phone_e164").eq("id", lead.assigned_agent_id ?? lead.created_by ?? "00000000-0000-0000-0000-000000000000").maybeSingle(),
+    devIds.length ? sb.from("developments").select("id, name, payment_plan").in("id", devIds) : null,
+  ]);
+  const development = mapDevelopment(check(devRow));
+  const propertyDevs = propertyDevResult ? check(propertyDevResult) ?? [] : [];
 
   const properties: PublicProperty[] = selectionRows
     .map((s) => {
